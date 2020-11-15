@@ -2,66 +2,91 @@
 using System.Collections.Generic;
 using System.Linq;
 using WindowsDesktop.Interop;
+using JetBrains.Annotations;
 
 namespace WindowsDesktop
 {
 	partial class VirtualDesktop
 	{
+		/// <summary>
+		/// Determines whether the specified window is pinned.
+		/// </summary>
+		/// <param name="hWnd">The handle of the window.</param>
 		public static bool IsPinnedWindow(IntPtr hWnd)
 		{
 			VirtualDesktopHelper.ThrowIfNotSupported();
 
-			return ComObjects.VirtualDesktopPinnedApps.IsViewPinned(hWnd.GetApplicationView());
+			return ComInterface.VirtualDesktopPinnedApps.IsViewPinned(hWnd.GetApplicationView());
 		}
 
+		/// <summary>
+		/// Pins the specified window, showing it on all virtual desktops.
+		/// </summary>
+		/// <param name="hWnd">The handle of the window.</param>
 		public static void PinWindow(IntPtr hWnd)
 		{
 			VirtualDesktopHelper.ThrowIfNotSupported();
 
 			var view = hWnd.GetApplicationView();
 
-			if (!ComObjects.VirtualDesktopPinnedApps.IsViewPinned(view))
+			if (!ComInterface.VirtualDesktopPinnedApps.IsViewPinned(view))
 			{
-				ComObjects.VirtualDesktopPinnedApps.PinView(view);
+				ComInterface.VirtualDesktopPinnedApps.PinView(view);
 			}
 		}
 
+		/// <summary>
+		/// Unpins the specified window.
+		/// </summary>
+		/// <param name="hWnd">The handle of the window.</param>
 		public static void UnpinWindow(IntPtr hWnd)
 		{
 			VirtualDesktopHelper.ThrowIfNotSupported();
 
 			var view = hWnd.GetApplicationView();
 
-			if (ComObjects.VirtualDesktopPinnedApps.IsViewPinned(view))
+			if (ComInterface.VirtualDesktopPinnedApps.IsViewPinned(view))
 			{
-				ComObjects.VirtualDesktopPinnedApps.UnpinView(view);
+				ComInterface.VirtualDesktopPinnedApps.UnpinView(view);
 			}
 		}
 
-		public static bool IsPinnedApplication(string appId)
+		/// <summary>
+		/// Determines whether the specified app is pinned.
+		/// </summary>
+		/// <param name="appId">The identifier of the app.</param>
+		public static bool IsPinnedApplication([NotNull] string appId)
 		{
 			VirtualDesktopHelper.ThrowIfNotSupported();
 
-			return ComObjects.VirtualDesktopPinnedApps.IsAppIdPinned(appId);
+			return ComInterface.VirtualDesktopPinnedApps.IsAppIdPinned(appId);
 		}
 
-		public static void PinApplication(string appId)
+		/// <summary>
+		/// Pins the specified app, showing it on all virtual desktops.
+		/// </summary>
+		/// <param name="appId">The identifier of the app.</param>
+		public static void PinApplication([NotNull] string appId)
 		{
 			VirtualDesktopHelper.ThrowIfNotSupported();
 
-			if (!ComObjects.VirtualDesktopPinnedApps.IsAppIdPinned(appId))
+			if (!ComInterface.VirtualDesktopPinnedApps.IsAppIdPinned(appId))
 			{
-				ComObjects.VirtualDesktopPinnedApps.PinAppID(appId);
+				ComInterface.VirtualDesktopPinnedApps.PinAppID(appId);
 			}
 		}
 
-		public static void UnpinApplication(string appId)
+		/// <summary>
+		/// Unpins the specified app.
+		/// </summary>
+		/// <param name="appId">The identifier of the app.</param>
+		public static void UnpinApplication([NotNull] string appId)
 		{
 			VirtualDesktopHelper.ThrowIfNotSupported();
 
-			if (ComObjects.VirtualDesktopPinnedApps.IsAppIdPinned(appId))
+			if (ComInterface.VirtualDesktopPinnedApps.IsAppIdPinned(appId))
 			{
-				ComObjects.VirtualDesktopPinnedApps.UnpinAppID(appId);
+				ComInterface.VirtualDesktopPinnedApps.UnpinAppID(appId);
 			}
 		}
 	}

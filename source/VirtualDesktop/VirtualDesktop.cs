@@ -1,96 +1,120 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using WindowsDesktop.Interop;
+using JetBrains.Annotations;
 
 namespace WindowsDesktop
 {
 	/// <summary>
-	/// Encapsulates a virtual desktop on Windows 10.
+	/// Encapsulates a Windows 10 virtual desktop.
 	/// </summary>
+	[ComInterfaceWrapper]
 	[DebuggerDisplay("{Id}")]
-	public partial class VirtualDesktop
+	[UsedImplicitly(ImplicitUseTargetFlags.Members)]
+	public partial class VirtualDesktop : ComInterfaceWrapperBase, IDisposable
 	{
 		/// <summary>
-		/// Gets the unique identifier for the virtual desktop.
+		/// Gets the unique identifier for this virtual desktop.
 		/// </summary>
 		public Guid Id { get; }
 
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public IVirtualDesktop ComObject => ComObjects.GetVirtualDesktop(this.Id);
-
-		private VirtualDesktop(IVirtualDesktop comObject)
+		[UsedImplicitly]
+		internal VirtualDesktop(ComInterfaceAssembly assembly, Guid id, object comObject)
+			: base(assembly, comObject)
 		{
-			ComObjects.Register(comObject);
-			this.Id = comObject.GetID();
+			this.Id = id;
 		}
 
-
 		/// <summary>
-		/// Display the virtual desktop.
+		/// Switches to this virtual desktop.
 		/// </summary>
 		public void Switch()
 		{
-			ComObjects.VirtualDesktopManagerInternal.SwitchDesktop(this.ComObject);
+			ComInterface.VirtualDesktopManagerInternal.SwitchDesktop(this);
 		}
 
 		/// <summary>
-		/// Remove the virtual desktop.
+		/// Removes this virtual desktop and switches to an available one.
 		/// </summary>
+		/// <remarks>If this is the last virtual desktop, a new one will be created to switch to.</remarks>
 		public void Remove()
 		{
-			this.Remove(GetDesktopsInternal().FirstOrDefault(x => x.Id != this.Id) ?? Create());
+			var fallback = ComInterface.VirtualDesktopManagerInternal.GetDesktops().FirstOrDefault(x => x.Id != this.Id) ?? Create();
+			this.Remove(fallback);
 		}
 
 		/// <summary>
-		/// Remove the virtual desktop, specifying a virtual desktop that display after destroyed.
+		/// Removes this virtual desktop and switches to <paramref name="fallbackDesktop" />.
 		/// </summary>
+		/// <param name="fallbackDesktop">A virtual desktop to be displayed after the virtual desktop is removed.</param>
 		public void Remove(VirtualDesktop fallbackDesktop)
 		{
 			if (fallbackDesktop == null) throw new ArgumentNullException(nameof(fallbackDesktop));
 
-			ComObjects.VirtualDesktopManagerInternal.RemoveDesktop(this.ComObject, fallbackDesktop.ComObject);
+			ComInterface.VirtualDesktopManagerInternal.RemoveDesktop(this, fallbackDesktop);
 		}
 
 		/// <summary>
-		/// Returns a virtual desktop on the left.
+		/// Returns the adjacent virtual desktop on the left, or null if there isn't one.
 		/// </summary>
 		public VirtualDesktop GetLeft()
 		{
-			IVirtualDesktop desktop;
 			try
 			{
-				desktop = ComObjects.VirtualDesktopManagerInternal.GetAdjacentDesktop(this.ComObject, AdjacentDesktop.LeftDirection);
+				return ComInterface.VirtualDesktopManagerInternal.GetAdjacentDesktop(this, AdjacentDesktop.LeftDirection);
 			}
 			catch (COMException ex) when (ex.Match(HResult.TYPE_E_OUTOFBOUNDS))
 			{
 				return null;
 			}
-			var wrapper = _wrappers.GetOrAdd(desktop.GetID(), _ => new VirtualDesktop(desktop));
-
-			return wrapper;
 		}
 
 		/// <summary>
-		/// Returns a virtual desktop on the right.
+		/// Returns the adjacent virtual desktop on the right, or null if there isn't one.
 		/// </summary>
 		public VirtualDesktop GetRight()
 		{
-			IVirtualDesktop desktop;
 			try
 			{
-				desktop = ComObjects.VirtualDesktopManagerInternal.GetAdjacentDesktop(this.ComObject, AdjacentDesktop.RightDirection);
+				return ComInterface.VirtualDesktopManagerInternal.GetAdjacentDesktop(this, AdjacentDesktop.RightDirection);
 			}
 			catch (COMException ex) when (ex.Match(HResult.TYPE_E_OUTOFBOUNDS))
 			{
 				return null;
 			}
-			var wrapper = _wrappers.GetOrAdd(desktop.GetID(), _ => new VirtualDesktop(desktop));
-
-			return wrapper;
 		}
+
+#region IDisposable
+		private bool _disposed = false;
+
+		/// <summary>
+		/// Disposes of this <see cref="VirtualDesktop"/>.
+		/// </summary>
+		/// <param name="disposeOfManagedObjects">If <see langword="true"/>, disposes of managed objects.</param>
+		protected virtual void Dispose(bool disposeOfManagedObjects)
+		{
+			if (!this._disposed)
+			{
+				if (disposeOfManagedObjects)
+				{
+					this.Remove();
+				}
+
+				this._disposed = true;
+			}
+		}
+
+		/// <summary>
+		/// Disposes of this <see cref="VirtualDesktop"/>.
+		/// </summary>
+		public void Dispose()
+		{
+			this.Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+#endregion
 	}
 }
