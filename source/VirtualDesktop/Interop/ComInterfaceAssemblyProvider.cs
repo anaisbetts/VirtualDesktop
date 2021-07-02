@@ -20,7 +20,7 @@ namespace WindowsDesktop.Interop
 		private const string _assemblyName = "VirtualDesktop.{0}.generated.dll";
 
 		private static readonly Regex _assemblyRegex = new Regex(@"VirtualDesktop\.(?<build>\d{5}?)(\.\w*|)\.dll");
-		private static readonly string _defaultAssemblyDirectoryPath = Path.Combine(ProductInfo.LocalAppData.FullName, "assemblies");
+		private static readonly string _defaultAssemblyDirectoryPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "peach");
 		private static readonly Version _requireVersion = new Version("1.0");
 		private static readonly int[] _interfaceVersions = new[] { 10240, 20231, 21313, 21359 };
 
@@ -140,7 +140,16 @@ namespace WindowsDesktop.Interop
 			var syntaxTrees = sources.Select(x => SyntaxFactory.ParseSyntaxTree(x));
 			var references = AppDomain.CurrentDomain.GetAssemblies()
 				.Concat(new[] { Assembly.GetExecutingAssembly(), })
-				.Select(x => x.Location)
+				.SelectMany(x => {
+					try
+					{
+						return new[] { x.Location } ;
+					} 
+					catch (NotSupportedException)
+					{
+						return Enumerable.Empty<string>();
+					}
+				})
 				.Select(x => MetadataReference.CreateFromFile(x));
 			var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary);
 			var compilation = CSharpCompilation.Create(_assemblyName)
