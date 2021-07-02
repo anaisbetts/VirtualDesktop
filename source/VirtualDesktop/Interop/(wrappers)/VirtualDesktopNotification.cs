@@ -48,7 +48,12 @@ namespace WindowsDesktop.Interop
 			VirtualDesktop.EventRaiser.RaiseDestroyed(this, VirtualDesktopCache.GetOrCreate(pDesktopDestroyed), VirtualDesktopCache.GetOrCreate(pDesktopFallback));
 		}
 
-		protected void ViewVirtualDesktopChangedCore(IntPtr pView)
+		protected void VirtualDesktopMovedCore(object pDesktop, int nFromIndex, int nToIndex)
+		{
+			VirtualDesktop.EventRaiser.RaiseMoved(this, VirtualDesktopCache.GetOrCreate(pDesktop), nFromIndex, nToIndex);
+		}
+
+		protected void ViewVirtualDesktopChangedCore(object pView)
 		{
 			VirtualDesktop.EventRaiser.RaiseApplicationViewChanged(this, pView);
 		}
@@ -58,9 +63,14 @@ namespace WindowsDesktop.Interop
 			VirtualDesktop.EventRaiser.RaiseCurrentChanged(this, VirtualDesktopCache.GetOrCreate(pDesktopOld), VirtualDesktopCache.GetOrCreate(pDesktopNew));
 		}
 
-		protected void VirtualDesktopRenamedCore(object pDesktop, string name)
+		protected void VirtualDesktopRenamedCore(object pDesktop, string chName)
 		{
-			VirtualDesktop.EventRaiser.RaiseRenamed(this, VirtualDesktopCache.GetOrCreate(pDesktop), name);
+			VirtualDesktop.EventRaiser.RaiseRenamed(this, VirtualDesktopCache.GetOrCreate(pDesktop), chName);
+		}
+
+		protected void VirtualDesktopWallpaperChangedCore(object pDesktop, string chPath)
+		{
+			VirtualDesktop.EventRaiser.RaiseWallpaperChanged(this, VirtualDesktopCache.GetOrCreate(pDesktop), chPath);
 		}
 	}
 }

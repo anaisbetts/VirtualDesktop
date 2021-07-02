@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using WindowsDesktop.Interop;
+using WindowsDesktop.Properties;
 using JetBrains.Annotations;
 
 namespace WindowsDesktop
@@ -21,6 +22,19 @@ namespace WindowsDesktop
 		/// </summary>
 		public Guid Id { get; }
 
+		/// <summary>
+		/// Gets the index for the virtual desktop.
+		/// </summary>
+		public int Index
+		{
+			get
+			{
+				var desktops = GetDesktops();
+				var index = Array.IndexOf(desktops, this);
+				return index;
+			}
+		}
+
 		private string _name = null;
 
 		/// <summary>
@@ -31,9 +45,25 @@ namespace WindowsDesktop
 			get => this._name;
 			set
 			{
-				if (this.ComVersion < 2) throw new PlatformNotSupportedException("This Windows 10 version is not supported.");
+				if (ProductInfo.OSBuild < 20231 && this.ComVersion < 2) throw new PlatformNotSupportedException("This Windows 10 version is not supported.");
 
 				ComInterface.VirtualDesktopManagerInternal.SetName(this, value);
+			}
+		}
+
+		private string _wallpaperPath = null;
+
+		/// <summary>
+		/// Gets the name for the virtual desktop.
+		/// </summary>
+		public string WallpaperPath
+		{
+			get => this._wallpaperPath;
+			set
+			{
+				if (ProductInfo.OSBuild < 21313) throw new PlatformNotSupportedException("This Windows 10 version is not supported.");
+
+				ComInterface.VirtualDesktopManagerInternal.SetWallpaperPath(this, value);
 			}
 		}
 
@@ -43,9 +73,14 @@ namespace WindowsDesktop
 		{
 			this.Id = id;
 			
-			if (this.ComVersion >= 2)
+			if (ProductInfo.OSBuild >= 20231 || this.ComVersion >= 2)
 			{
 				this._name = this.Invoke<string>(Args(), "GetName");
+
+				if (ProductInfo.OSBuild >= 21313)
+				{
+					this._wallpaperPath = this.Invoke<string>(Args(), "GetWallpaperPath");
+				}
 			}
 		}
 
@@ -55,6 +90,15 @@ namespace WindowsDesktop
 		public void Switch()
 		{
 			ComInterface.VirtualDesktopManagerInternal.SwitchDesktop(this);
+		}
+
+		/// <summary>
+		/// Moves this virtual desktop to a new location.
+		/// </summary>
+		/// <param name="index">The zero-based index specifying the new location of the virtual desktop.</param>
+		public void Move(int index)
+		{
+			ComInterface.VirtualDesktopManagerInternal.MoveDesktop(this, index);
 		}
 
 		/// <summary>
@@ -115,6 +159,15 @@ namespace WindowsDesktop
 			this.RaisePropertyChanging(nameof(this.Name));
 			this._name = name;
 			this.RaisePropertyChanged(nameof(this.Name));
+		}
+
+		private void SetWallpaperPathToCache(string path)
+		{
+			if (this._wallpaperPath == path) return;
+
+			this.RaisePropertyChanging(nameof(this.WallpaperPath));
+			this._wallpaperPath = path;
+			this.RaisePropertyChanged(nameof(this.WallpaperPath));
 		}
 		
 #region IDisposable

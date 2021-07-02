@@ -30,6 +30,7 @@ namespace VirtualDesktopShowcase
 			}
 
 			VirtualDesktop.CurrentChanged += (sender, args) => System.Diagnostics.Debug.WriteLine($"Desktop changed: {args.NewDesktop.Id}");
+			VirtualDesktop.Moved += (sender, args) => System.Diagnostics.Debug.WriteLine($"Desktop moved: {args.OldIndex} -> {args.NewIndex} ({args.Source.Id})");
 			VirtualDesktop.Renamed += (sender, args) => System.Diagnostics.Debug.WriteLine($"Desktop renamed: {args.OldName} -> {args.NewName} ({args.Source.Id})");
 		}
 
@@ -182,6 +183,37 @@ namespace VirtualDesktopShowcase
 					MessageBox.Show(ex.Message, "Error");
 				}
 			}
+		}
+
+		private async void GetWallpaperPath(object sender, RoutedEventArgs e)
+		{
+			if (this.ThisWindowMenu.IsChecked ?? false)
+			{
+				var name = this.GetCurrentDesktop().WallpaperPath;
+				MessageBox.Show(name, "Current wallpaper path");
+			}
+			else
+			{
+				await Task.Delay(_delay);
+				var name = this.GetCurrentDesktop().WallpaperPath;
+				MessageBox.Show(name, "Current wallpaper path");
+			}
+		}
+
+		private void MovePrevious(object sender, RoutedEventArgs e)
+		{
+			var desktop = this.GetCurrentDesktop();
+			if (desktop == null) return;
+
+			desktop.Move(desktop.Index - 1);
+		}
+
+		private void MoveNext(object sender, RoutedEventArgs e)
+		{
+			var desktop = this.GetCurrentDesktop();
+			if (desktop == null) return;
+
+			desktop.Move(desktop.Index + 1);
 		}
 
 
